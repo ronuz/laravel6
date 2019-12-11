@@ -1,0 +1,63 @@
+version: "3.1"
+
+# volumes:
+#   nfsmount:
+#     driver: local
+#     driver_opts:
+#       type: nfs
+#       o: addr=rw,nolock,hard,nointr,nfsvers=3
+#       device: ":$PWD"
+
+services:
+  webserver:
+    image: nginx:alpine
+    container_name: training-webserver
+    working_dir: /application
+    volumes:
+        - ./:/application
+        - ./phpdocker/nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+    ports:
+      - "2201:80"
+
+  php-fpm:
+    build: phpdocker/php-fpm
+    container_name: training-php-fpm
+    working_dir: /application
+    environment:
+      XDEBUG_CONFIG: "remote_host=docker.for.mac.host.internal"
+      PHP_IDE_CONFIG: "serverName=training-Docker"
+    volumes:
+      - ./:/application
+      - ./phpdocker/php-fpm/php-ini-overrides.ini:/etc/php/7.3/fpm/conf.d/99-overrides.ini
+
+  mysql:
+    image: mysql:5.7
+    container_name: training-mysql
+    working_dir: /application
+    volumes:
+      - ./:/application
+      - /data:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=training
+      - MYSQL_USER=homestead
+      - MYSQL_PASSWORD=secret
+    ports:
+      - "2548:3306"
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: training-phpmyadmin
+    depends_on:
+      - mysql
+    links:
+      - mysql
+    ports:
+      - "2202:80"
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      PMA_ARBITRARY: 1
+      PMA_USER: 'homestead'
+      PMA_PASSWORD: 'secret'
+      MYSQL_ROOT_PASSWORD: password 
